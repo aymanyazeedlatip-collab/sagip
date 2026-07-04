@@ -186,7 +186,7 @@ async function generateElevationGrid() {
         <div class="result-card">
             <span>DEM Status</span>
             <strong>Generating...</strong>
-            <p>Fetching 100% real DEM elevation data. Synthetic and interpolated terrain are disabled, so this may take longer.
+            <p>Fetching 100% real DEM elevation data. Synthetic and interpolated terrain are disabled. High-resolution 80×80 scans may take several minutes.</p>
         </div>
     `;
 

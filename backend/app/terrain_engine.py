@@ -55,13 +55,14 @@ def synthetic_elevation(lat: float, lng: float):
     return round(max(0, elevation), 2)
 
 
-def fetch_elevations_from_opentopodata(points, chunk_size=20, max_attempts=6):
+def fetch_elevations_from_opentopodata(points, chunk_size=100, max_attempts=4):
     """
     Fetches 100% real DEM elevation data from OpenTopoData.
 
     Strict mode:
     - No synthetic fallback
     - No interpolation fallback
+    - Uses larger batches for faster deployment loading
     - Retries failed batches
     - Retries missing points individually
     - Fails if even one point is missing
@@ -92,17 +93,9 @@ def fetch_elevations_from_opentopodata(points, chunk_size=20, max_attempts=6):
                 response = requests.post(
                     OPENTOPO_URL,
                     data=payload,
-                    timeout=60,
+                    timeout=90,
                     headers=headers,
                 )
-
-                if response.status_code >= 400:
-                    response = requests.get(
-                        OPENTOPO_URL,
-                        params=payload,
-                        timeout=60,
-                        headers=headers,
-                    )
 
                 response.raise_for_status()
 
@@ -124,14 +117,22 @@ def fetch_elevations_from_opentopodata(points, chunk_size=20, max_attempts=6):
 
             except Exception as error:
                 last_error = error
-                time.sleep(0.8 * attempt)
+                time.sleep(0.7 * attempt)
 
         raise RuntimeError(
             f"OpenTopoData batch failed after {max_attempts} attempts. Last error: {last_error}"
         )
 
-    for start in range(0, len(points), chunk_size):
+    total_batches = math.ceil(len(points) / chunk_size)
+
+    for batch_number, start in enumerate(range(0, len(points), chunk_size), start=1):
         chunk = points[start:start + chunk_size]
+
+        print(
+            f"SAGIP DEM strict fetch: batch {batch_number}/{total_batches}, "
+            f"{len(chunk)} points",
+            flush=True,
+        )
 
         results = request_batch(chunk)
 
@@ -141,7 +142,7 @@ def fetch_elevations_from_opentopodata(points, chunk_size=20, max_attempts=6):
             if elevation is not None:
                 all_elevations[start + offset] = float(elevation)
 
-        time.sleep(0.18)
+        time.sleep(0.08)
 
     missing_indexes = [
         index for index, elevation in enumerate(all_elevations)
@@ -149,6 +150,11 @@ def fetch_elevations_from_opentopodata(points, chunk_size=20, max_attempts=6):
     ]
 
     if missing_indexes:
+        print(
+            f"SAGIP DEM strict fetch: retrying {len(missing_indexes)} missing point(s) individually",
+            flush=True,
+        )
+
         for index in missing_indexes:
             point = points[index]
 
@@ -158,7 +164,7 @@ def fetch_elevations_from_opentopodata(points, chunk_size=20, max_attempts=6):
             if elevation is not None:
                 all_elevations[index] = float(elevation)
 
-            time.sleep(0.15)
+            time.sleep(0.05)
 
     final_missing = [
         index for index, elevation in enumerate(all_elevations)

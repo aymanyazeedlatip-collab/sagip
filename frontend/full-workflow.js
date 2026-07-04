@@ -48,7 +48,31 @@ async function runFullSagipAnalysis() {
             "Fetching 100% real DEM elevation data. No synthetic or interpolated terrain will be used. This may take longer."
         );
 
-        const terrainResponse = await postSagipFullJson("/api/elevation-grid", areaPayload);
+        let demVisualProgress = 18;
+        let demElapsedSeconds = 0;
+
+        const demProgressTimer = setInterval(() => {
+            demElapsedSeconds += 5;
+
+            if (demVisualProgress < 35) {
+                demVisualProgress += 1;
+            }
+
+            updateSagipFullLoader(
+                demVisualProgress,
+                "Generating DEM terrain grid...",
+                `Still fetching 100% real DEM data. Elapsed time: ${demElapsedSeconds} seconds. This is normal for high-resolution 80×80 scans.`
+            );
+        }, 5000);
+
+        let terrainResponse = null;
+
+        try {
+            terrainResponse = await postSagipFullJson("/api/elevation-grid", areaPayload);
+        } finally {
+            clearInterval(demProgressTimer);
+        }
+
         window.latestTerrainData = terrainResponse;
 
         updateSagipFullLoader(
