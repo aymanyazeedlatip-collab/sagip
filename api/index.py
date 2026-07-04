@@ -1,8 +1,13 @@
 import os
 import sys
 import traceback
+
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
+
+
+# Vercel must see this top-level app variable.
+app = FastAPI()
 
 
 try:
@@ -12,12 +17,12 @@ try:
     if BACKEND_DIR not in sys.path:
         sys.path.insert(0, BACKEND_DIR)
 
-    from main import app
+    from main import app as sagip_app
+
+    app = sagip_app
 
 except Exception:
     error_text = traceback.format_exc()
-
-    app = FastAPI()
 
     @app.get("/{path:path}")
     def import_error_debug(path: str = ""):
