@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>SAGIP — Flood Early Warning System</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700;800&family=Outfit:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet" />
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.css" />
+
+    <link rel="stylesheet" href="/static/style.css" />
+</head>
+
+<body>
+    <aside class="sidebar">
+        <div class="brand">
+            <div class="brand-icon">🌊</div>
+            <div>
+                <h1>SAGIP</h1>
+                <p>Flood Early Warning</p>
+            </div>
+        </div>
+
+        <nav class="nav">
+            <button class="nav-btn active" data-tab="home">Home</button>
+            <button class="nav-btn" data-tab="area">Area Selection</button>
+            <button class="nav-btn" data-tab="simulation">Flood Simulation</button>
+            <button class="nav-btn" data-tab="hazard">Hazard Map</button>
+            <button class="nav-btn" data-tab="alerts">Vulnerability Alerts</button>
+            <button class="nav-btn" data-tab="reports">Reports</button>
+        </nav>
+    </aside>
+
+    <main class="main">
+        <section id="home" class="tab active">
+            <div class="hero">
+                <div class="hero-badge">DEM-Based Flood Susceptibility Prototype</div>
+                <h2>SAGIP</h2>
+                <h3>Spatial Analytics and Geospatial Inundation Projection</h3>
+                <p>
+                    A flood early warning and emergency response platform that uses selected map areas,
+                    elevation data, rainfall forecast, and terrain-based flood accumulation simulation.
+                </p>
+
+                <div class="hero-grid">
+                    <div class="hero-card">
+                        <strong>Area Selection</strong>
+                        <span>Choose a rectangular flood analysis zone.</span>
+                    </div>
+                    <div class="hero-card">
+                        <strong>DEM Terrain</strong>
+                        <span>Analyze elevation, slope, and low-lying areas.</span>
+                    </div>
+                    <div class="hero-card">
+                        <strong>Rainfall Timeline</strong>
+                        <span>Use 16-day rainfall forecast for flood simulation.</span>
+                    </div>
+                    <div class="hero-card">
+                        <strong>Emergency Support</strong>
+                        <span>Generate warning levels and response recommendations.</span>
+                    </div>
+                </div>
+
+                <button class="primary-btn" onclick="switchTab('area')">Start Area Selection</button>
+            </div>
+        </section>
+
+        <section id="area" class="tab">
+            <div class="page-header">
+                <div>
+                    <p class="eyebrow">Step 1</p>
+                    <h2>Select Flood Analysis Area</h2>
+                    <p>Move the map, choose an area size, then analyze the selected rectangle.</p>
+                </div>
+            </div>
+
+            <div class="dashboard-grid">
+                <div class="panel map-panel">
+                    <div id="area-map"></div>
+                </div>
+
+                <div class="panel control-panel">
+                    <h3>Rectangle Controls</h3>
+
+                    <button class="secondary-btn" onclick="moveRectangleToMapCenter()">Move Rectangle to Map
+                        Center</button>
+
+                    <button class="secondary-btn location-btn" id="detect-location-btn" onclick="detectUserLocation()">
+                        📍 Detect My Current Location
+                    </button>
+
+                    <button class="secondary-btn" onclick="setRectangleSizeKm(1)">Barangay Detail — 1 km × 1 km</button>
+                    <button class="secondary-btn" onclick="setRectangleSizeKm(3)">Local Area — 3 km × 3 km</button>
+                    <button class="secondary-btn" onclick="setRectangleSizeKm(5)">District Area — 5 km × 5 km</button>
+                    <button class="secondary-btn" onclick="setRectangleSizeKm(10)">Wide Area — 10 km × 10 km</button>
+                    <button class="secondary-btn" onclick="setRectangleSizeKm(20)">Municipality Scan — 20 km × 20
+                        km</button>
+                    <button class="secondary-btn" onclick="setRectangleSizeKm(30)">Large Municipality Scan — 30 km × 30
+                        km</button>
+                    <button class="secondary-btn" onclick="setRectangleSizeKm(40)">Maximum Prototype Scan — 40 km × 40
+                        km</button>
+
+                    <label class="field-label" for="grid-resolution">Grid Resolution</label>
+                    <select id="grid-resolution">
+                        <option value="20">20 × 20 — Very Fast / Municipality Preview</option>
+                        <option value="25">25 × 25 — Fast Municipality Scan</option>
+                        <option value="30">30 × 30 — Recommended for Large Areas</option>
+                        <option value="40">40 × 40 — Balanced</option>
+                        <option value="60">60 × 60 — Detailed</option>
+                        <option value="80" selected>80 × 80 — High Detail / Default</option>
+                    </select>
+
+                    <div class="bbox-box">
+                        <h4>Selected Rectangle</h4>
+                        <p><strong>North:</strong> <span id="bbox-north">-</span></p>
+                        <p><strong>South:</strong> <span id="bbox-south">-</span></p>
+                        <p><strong>East:</strong> <span id="bbox-east">-</span></p>
+                        <p><strong>West:</strong> <span id="bbox-west">-</span></p>
+                    </div>
+
+                    <button class="primary-btn full" onclick="analyzeSelectedArea()">Analyze Selected Area</button>
+                    <button class="secondary-btn full" onclick="generateElevationGrid()">
+                        Generate DEM Terrain Grid
+                    </button>
+                    <button class="primary-btn full sagip-run-all-btn" onclick="runFullSagipAnalysis()">
+                        ⚡ Run Full SAGIP Analysis
+                    </button>
+                </div>
+            </div>
+
+            <div id="area-results" class="results-grid hidden"></div>
+            <div id="dem-results" class="results-grid hidden"></div>
+        </section>
+
+        <section id="simulation" class="tab">
+            <div class="page-header">
+                <div>
+                    <p class="eyebrow">Step 3</p>
+                    <h2>3D Terrain Visualization</h2>
+                    <p>
+                        Render the selected DEM grid as a 3D terrain surface. Floodwater simulation will be added after
+                        this.
+                    </p>
+                </div>
+            </div>
+
+            <div class="terrain-layout">
+                <div class="panel terrain-viewer-panel">
+                    <div class="terrain-toolbar">
+                        <div>
+                            <h3>3D DEM Terrain Viewer</h3>
+                            <p id="terrain-viewer-status">Generate a DEM grid first, then render it here.</p>
+                        </div>
+
+                        <div class="terrain-actions">
+                            <button class="secondary-btn small-btn" onclick="renderLatestTerrain3D()">Render 3D
+                                Terrain</button>
+                            <button class="secondary-btn small-btn" onclick="resetTerrainCamera()">Reset Camera</button>
+                            <button class="secondary-btn small-btn" onclick="toggleTerrainWireframe()">Toggle
+                                Wireframe</button>
+                            <button class="secondary-btn small-btn" id="terrain-color-toggle"
+                                onclick="toggleTerrainColorMode()">
+                                Gray Mode
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="terrain-3d-viewer"></div>
+                </div>
+
+                <div class="panel terrain-side-panel">
+                    <h3>Terrain Controls</h3>
+
+                    <label class="field-label" for="terrain-exaggeration">
+                        Vertical Exaggeration
+                    </label>
+
+                    <input type="range" id="terrain-exaggeration" min="0.2" max="3" step="0.1" value="1"
+                        oninput="setTerrainExaggeration(this.value)" />
+
+                    <p class="control-help">
+                        Increase this if the terrain looks too flat. Use lower values for municipality-scale scans.
+                    </p>
+
+                    <div class="terrain-info-box">
+                        <h4>Current Terrain Data</h4>
+                        <p><strong>Source:</strong> <span id="terrain-info-source">-</span></p>
+                        <p><strong>Resolution:</strong> <span id="terrain-info-resolution">-</span></p>
+                        <p><strong>Elevation Range:</strong> <span id="terrain-info-range">-</span></p>
+                        <p><strong>Terrain Type:</strong> <span id="terrain-info-type">-</span></p>
+                    </div>
+
+                    <div class="terrain-info-box">
+                        <h4>3D Terrain Legend</h4>
+
+                        <div class="legend-row">
+                            <span class="legend-color legend-blue"></span>
+                            <p>Lowest elevation / possible pooling zones</p>
+                        </div>
+
+                        <div class="legend-row">
+                            <span class="legend-color legend-green"></span>
+                            <p>Low to moderate terrain</p>
+                        </div>
+
+                        <div class="legend-row">
+                            <span class="legend-color legend-yellow"></span>
+                            <p>Middle elevation</p>
+                        </div>
+
+                        <div class="legend-row">
+                            <span class="legend-color legend-orange"></span>
+                            <p>High elevation</p>
+                        </div>
+
+                        <div class="legend-row">
+                            <span class="legend-color legend-brown"></span>
+                            <p>Highest terrain / ridges</p>
+                        </div>
+
+                        <div class="legend-row">
+                            <span class="legend-dot-red"></span>
+                            <p>Detected low points</p>
+                        </div>
+
+                        <p class="legend-note">
+                            In gray mode, darker areas are lower and lighter areas are higher.
+                        </p>
+                    </div>
+
+                    <div class="terrain-info-box">
+                        <h4>Scanned Area Minimap</h4>
+                        <div id="terrain-minimap"></div>
+                        <p class="legend-note">
+                            This minimap shows the exact rectangle currently rendered in 3D.
+                        </p>
+                    </div>
+
+                    <div class="terrain-info-box">
+                        <h4>Reminder</h4>
+                        <p>
+                            This is a DEM-based 3D visualization. Floodwater overlay will be added in the next stages.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div id="water-analyzer-section" class="water-analyzer-section hidden">
+                <div class="panel water-analyzer-card">
+                    <div class="water-analyzer-header">
+                        <div>
+                            <p class="eyebrow">Step 3.6</p>
+                            <h3>Water Body Analyzer</h3>
+                            <p>
+                                Detects mapped rivers, streams, canals, drains, ponds, lakes, and reservoirs inside the
+                                selected
+                                terrain area. These features will later affect flood simulation risk.
+                            </p>
+                        </div>
+
+                        <div class="water-analyzer-actions">
+                            <span class="water-analyzer-badge" id="water-analyzer-status">Waiting</span>
+                            <button class="secondary-btn small-btn" onclick="scanWaterBodiesForLatestTerrain()">
+                                Rescan Water Bodies
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="water-analyzer-body">
+                        <div class="water-map-col">
+                            <div class="water-grid-wrap">
+                                <canvas id="waterBodyCanvas"></canvas>
+
+                                <div class="water-grid-legend">
+                                    <span>Minor drainage</span>
+                                    <div class="water-gradient-bar"></div>
+                                    <span>Major river / reservoir</span>
+                                </div>
+                            </div>
+
+                            <div class="water-analyzer-summary" id="water-analyzer-summary">
+                                Render 3D terrain first to scan nearby water bodies.
+                            </div>
+                        </div>
+
+                        <div class="water-score-col">
+                            <div class="water-risk-panel">
+                                <div class="water-risk-title">Flood-Relevant Water Features</div>
+
+                                <div class="water-risk-metrics">
+                                    <div>
+                                        <span>Total Found</span>
+                                        <strong id="water-total-count">—</strong>
+                                    </div>
+                                    <div>
+                                        <span>Rivers</span>
+                                        <strong id="water-river-count">—</strong>
+                                    </div>
+                                    <div>
+                                        <span>Streams</span>
+                                        <strong id="water-stream-count">—</strong>
+                                    </div>
+                                    <div>
+                                        <span>Canals / Drains</span>
+                                        <strong id="water-drainage-count">—</strong>
+                                    </div>
+                                    <div>
+                                        <span>Lakes / Reservoirs</span>
+                                        <strong id="water-storage-count">—</strong>
+                                    </div>
+                                </div>
+
+                                <p class="water-risk-note">
+                                    These are mapped water features. In the next flood simulation stage, SAGIP can use
+                                    them as
+                                    overflow sources, drainage pathways, and proximity-based risk modifiers.
+                                </p>
+                            </div>
+
+                            <div class="detected-water-panel">
+                                <div class="detected-water-header">
+                                    <div>
+                                        <div class="dwp-eyebrow">🌊 Detected Water Bodies</div>
+                                        <h4>Mapped Water Features</h4>
+                                    </div>
+                                    <span id="detected-water-count">0 found</span>
+                                </div>
+
+                                <div class="detected-water-list" id="detected-water-list">
+                                    <div class="detected-water-empty">
+                                        No scan yet. Generate 3D terrain first.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="rainfall-forecast-section" class="rainfall-forecast-section">
+                <div class="panel rainfall-card">
+                    <div class="rainfall-header">
+                        <div>
+                            <p class="eyebrow">Step 5</p>
+                            <h3>16-day Rainfall Forecast</h3>
+                            <p>
+                                Fetches forecast rainfall for the selected analysis area. This rainfall timeline will
+                                drive the
+                                flood simulation in the next stage.
+                            </p>
+                        </div>
+
+                        <div class="rainfall-actions">
+                            <span class="rainfall-badge" id="rainfall-status">Waiting</span>
+                            <button class="secondary-btn small-btn" onclick="fetchRainfallForecastForLatestArea()">
+                                Fetch 16-day Forecast
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="rainfall-summary-grid">
+                        <div class="rainfall-summary-card">
+                            <span>Total 16-day Rainfall</span>
+                            <strong id="rainfall-total">—</strong>
+                        </div>
+
+                        <div class="rainfall-summary-card">
+                            <span>Wet Days</span>
+                            <strong id="rainfall-wet-days">—</strong>
+                        </div>
+
+                        <div class="rainfall-summary-card">
+                            <span>Peak Day</span>
+                            <strong id="rainfall-peak-day">—</strong>
+                        </div>
+
+                        <div class="rainfall-summary-card">
+                            <span>Peak Hour</span>
+                            <strong id="rainfall-peak-hour">—</strong>
+                        </div>
+                    </div>
+
+                    <div class="rainfall-chart-panel">
+                        <div class="rainfall-chart-title">
+                            <h4>Daily Rainfall Forecast</h4>
+                            <span id="rainfall-source">No forecast loaded</span>
+                        </div>
+
+                        <div id="rainfall-daily-bars" class="rainfall-daily-bars">
+                            <div class="rainfall-empty">
+                                No forecast yet. Click “Fetch 16-day Forecast”.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="rainfall-calendar-panel">
+                        <div class="rainfall-chart-title">
+                            <h4>16-Day Forecast Calendar</h4>
+                            <span>PAL-AI-inspired calendar view, redesigned for SAGIP flood monitoring</span>
+                        </div>
+
+                        <div class="forecast-calendar">
+                            <div class="forecast-weekday-header">SUN</div>
+                            <div class="forecast-weekday-header">MON</div>
+                            <div class="forecast-weekday-header">TUE</div>
+                            <div class="forecast-weekday-header">WED</div>
+                            <div class="forecast-weekday-header">THU</div>
+                            <div class="forecast-weekday-header">FRI</div>
+                            <div class="forecast-weekday-header">SAT</div>
+
+                            <div id="forecast-calendar-grid" class="forecast-calendar-grid">
+                                <div class="rainfall-empty">
+                                    No calendar forecast yet. Click “Fetch 16-Day Forecast”.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="rainfall-interpretation-box">
+                        <h4>Forecast Interpretation</h4>
+                        <p id="rainfall-interpretation">
+                            Waiting for rainfall forecast.
+                        </p>
+                    </div>
+
+                    <div id="rainfall-warning-box" class="rainfall-warning-box hidden"></div>
+                </div>
+            </div>
+            <div id="flood-simulation-section" class="flood-simulation-section">
+                <div class="panel flood-card">
+                    <div class="flood-header">
+                        <div>
+                            <p class="eyebrow">Step 6</p>
+                            <h3>Flood Accumulation Simulation</h3>
+                            <p>
+                                Combines DEM terrain, slope, low points, mapped water bodies, and 16-day hourly rainfall
+                                to estimate
+                                floodwater accumulation over time.
+                            </p>
+                        </div>
+
+                        <div class="flood-actions">
+                            <span class="flood-badge" id="flood-status">Waiting</span>
+                            <button class="secondary-btn small-btn" onclick="runFloodSimulationForLatestData()">
+                                Run Flood Simulation
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="flood-controls-row">
+                        <div class="flood-control-box">
+                            <label class="field-label" for="runoff-multiplier">Runoff Scenario</label>
+                            <select id="runoff-multiplier">
+                                <option value="0.8">Low runoff / better drainage</option>
+                                <option value="1.0" selected>Normal runoff</option>
+                                <option value="1.3">High runoff / saturated ground</option>
+                                <option value="1.7">Extreme runoff / clogged drainage</option>
+                            </select>
+                        </div>
+
+                        <div class="flood-control-box">
+                            <label class="field-label" for="snapshot-interval">Timeline Detail</label>
+                            <select id="snapshot-interval">
+                                <option value="12">Every 12 hours — lighter</option>
+                                <option value="6" selected>Every 6 hours — recommended</option>
+                                <option value="3">Every 3 hours — detailed</option>
+                                <option value="1">Every hour — heavy</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="flood-summary-grid">
+                        <div class="flood-summary-card">
+                            <span>Overall Level</span>
+                            <strong id="flood-overall-level">—</strong>
+                        </div>
+
+                        <div class="flood-summary-card">
+                            <span>Peak Depth</span>
+                            <strong id="flood-peak-depth">—</strong>
+                        </div>
+
+                        <div class="flood-summary-card">
+                            <span>Peak Time</span>
+                            <strong id="flood-peak-time">—</strong>
+                        </div>
+
+                        <div class="flood-summary-card">
+                            <span>Flooded Cells</span>
+                            <strong id="flood-cell-count">—</strong>
+                        </div>
+                    </div>
+
+                    <div class="flood-timeline-panel">
+                        <div class="flood-timeline-header">
+                            <h4>Flood Timeline</h4>
+                            <span id="flood-current-time">No simulation loaded</span>
+                        </div>
+
+                        <div class="flood-time-display">
+                            <div>
+                                <span>Date and Time</span>
+                                <strong id="flood-readable-datetime">—</strong>
+                            </div>
+
+                            <div>
+                                <span>Rainfall This Hour</span>
+                                <strong id="flood-current-rainfall">—</strong>
+                            </div>
+
+                            <div>
+                                <span>Rain Probability</span>
+                                <strong id="flood-current-probability">—</strong>
+                            </div>
+
+                            <div>
+                                <span>Weather Condition</span>
+                                <strong id="flood-current-condition">—</strong>
+                            </div>
+                        </div>
+
+                        <input type="range" id="flood-timeline-slider" min="0" max="0" step="1" value="0"
+                            oninput="showFloodSnapshotByIndex(Number(this.value))" />
+
+                        <div class="flood-timeline-help">
+                            Drag the slider to move through the simulated 16-day flood timeline. The displayed weather
+                            data follows the selected simulation hour.
+                        </div>
+                    </div>
+
+                    <div class="flood-visual-grid">
+                        <div class="flood-depth-panel">
+                            <div class="flood-panel-title">
+                                <h4>2D Flood Depth Grid</h4>
+                                <span>Blue intensity = deeper simulated water</span>
+                            </div>
+
+                            <canvas id="flood-depth-canvas"></canvas>
+                        </div>
+
+                        <div class="flood-location-map-panel">
+                            <div class="flood-panel-title">
+                                <h4>Flood Overlay Map</h4>
+                                <span>Simulated flood depth over actual map location</span>
+                            </div>
+
+                            <div id="flood-location-map"></div>
+                        </div>
+
+                        <div class="flood-interpretation-panel">
+                            <h4>Current Snapshot</h4>
+                            <p><strong>Max depth:</strong> <span id="snapshot-max-depth">—</span></p>
+                            <p><strong>Mean depth:</strong> <span id="snapshot-mean-depth">—</span></p>
+                            <p><strong>Flooded cells:</strong> <span id="snapshot-flooded-cells">—</span></p>
+                            <p><strong>High/severe cells:</strong> <span id="snapshot-high-cells">—</span></p>
+
+                            <div class="flood-depth-legend">
+                                <div><span class="flood-legend-color flood-none"></span>None</div>
+                                <div><span class="flood-legend-color flood-low"></span>Low</div>
+                                <div><span class="flood-legend-color flood-moderate"></span>Moderate</div>
+                                <div><span class="flood-legend-color flood-high"></span>High</div>
+                                <div><span class="flood-legend-color flood-severe"></span>Severe</div>
+                            </div>
+
+                            <div class="flood-warning-note">
+                                This is a simplified screening model. Use it for research demonstration and
+                                early-warning support,
+                                not official engineering flood certification.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="experimental-flood-section" class="experimental-flood-section">
+                <div class="panel experimental-flood-card">
+                    <div class="experimental-header">
+                        <div>
+                            <p class="eyebrow">Experimental Mode</p>
+                            <h3>Manual Water-Level Inundation Test</h3>
+                            <p>
+                                Move the water-level slider to see which low-lying areas would be submerged first.
+                                This is a simple “bathtub-style” terrain test, separate from rainfall simulation.
+                            </p>
+                        </div>
+
+                        <div class="experimental-badge">
+                            Manual Scenario
+                        </div>
+                    </div>
+
+                    <div class="experimental-controls">
+                        <div>
+                            <label class="field-label" for="experimental-water-level">
+                                Water Level Above Lowest Terrain
+                            </label>
+
+                            <input type="range" id="experimental-water-level" min="0" max="500" step="10" value="0"
+                                oninput="updateExperimentalWaterLevel(Number(this.value))" />
+
+                            <div class="experimental-slider-labels">
+                                <span>0 cm</span>
+                                <strong id="experimental-water-level-label">0 cm</strong>
+                                <span>500 cm</span>
+                            </div>
+                        </div>
+
+                        <div class="experimental-checkbox">
+                            <label>
+                                <input type="checkbox" id="experimental-apply-main-maps" checked />
+                                Preview on main flood maps and 3D terrain
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="experimental-grid">
+                        <div class="experimental-map-panel">
+                            <div class="flood-panel-title">
+                                <h4>Experimental Flood Grid</h4>
+                                <span>Shows which cells flood first as water level rises</span>
+                            </div>
+
+                            <canvas id="experimental-flood-canvas"></canvas>
+                        </div>
+
+                        <div class="experimental-info-panel">
+                            <h4>Experimental Result</h4>
+                            <p><strong>Water level:</strong> <span id="experimental-level-readout">—</span></p>
+                            <p><strong>Flooded cells:</strong> <span id="experimental-flooded-cells">—</span></p>
+                            <p><strong>Max experimental depth:</strong> <span id="experimental-max-depth">—</span></p>
+                            <p><strong>Flooded area share:</strong> <span id="experimental-area-share">—</span></p>
+
+                            <div class="flood-warning-note">
+                                This mode does not use rainfall forecast. It only raises a virtual water surface over
+                                the DEM to
+                                show which low-elevation cells are submerged first.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="hazard" class="tab">
+            <div class="page-header">
+                <div>
+                    <p class="eyebrow">Step 4</p>
+                    <h2>2D DEM Hazard Preview Map</h2>
+                    <p>
+                        Shows terrain-based flood susceptibility using elevation, slope, low points, and mapped water
+                        proximity.
+                        Rainfall simulation will be added in the next stages.
+                    </p>
+                </div>
+            </div>
+
+            <div class="hazard-layout">
+                <div class="panel hazard-map-panel">
+                    <div class="hazard-toolbar">
+                        <div>
+                            <h3>2D Flood Susceptibility Preview</h3>
+                            <p id="hazard-map-status">
+                                Generate a DEM grid first, then render the hazard preview.
+                            </p>
+                        </div>
+
+                        <div class="hazard-actions">
+                            <button class="secondary-btn small-btn" onclick="renderLatestHazardMap()">
+                                Render Hazard Map
+                            </button>
+                            <button class="secondary-btn small-btn" onclick="fitHazardMapToArea()">
+                                Fit to Area
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="hazard-leaflet-map"></div>
+                </div>
+
+                <div class="panel hazard-side-panel">
+                    <h3>Hazard Legend</h3>
+
+                    <div class="hazard-legend-box">
+                        <div class="hazard-legend-row">
+                            <span class="hazard-color hazard-safe"></span>
+                            <p><strong>Low</strong> — higher or safer terrain</p>
+                        </div>
+
+                        <div class="hazard-legend-row">
+                            <span class="hazard-color hazard-moderate"></span>
+                            <p><strong>Moderate</strong> — possible accumulation areas</p>
+                        </div>
+
+                        <div class="hazard-legend-row">
+                            <span class="hazard-color hazard-high"></span>
+                            <p><strong>High</strong> — low or flat flood-susceptible areas</p>
+                        </div>
+
+                        <div class="hazard-legend-row">
+                            <span class="hazard-color hazard-severe"></span>
+                            <p><strong>Severe</strong> — low points or water-adjacent zones</p>
+                        </div>
+
+                        <div class="hazard-legend-row">
+                            <span class="hazard-lowpoint-dot"></span>
+                            <p><strong>Low point</strong> — detected terrain depression</p>
+                        </div>
+                    </div>
+
+                    <div class="hazard-summary-box">
+                        <h4>Hazard Summary</h4>
+                        <p><strong>Low cells:</strong> <span id="hazard-low-count">—</span></p>
+                        <p><strong>Moderate cells:</strong> <span id="hazard-moderate-count">—</span></p>
+                        <p><strong>High cells:</strong> <span id="hazard-high-count">—</span></p>
+                        <p><strong>Severe cells:</strong> <span id="hazard-severe-count">—</span></p>
+                        <p><strong>Highest score:</strong> <span id="hazard-max-score">—</span></p>
+                    </div>
+
+                    <div class="hazard-summary-box">
+                        <h4>Interpretation</h4>
+                        <p id="hazard-interpretation">
+                            No hazard map rendered yet.
+                        </p>
+                    </div>
+
+                    <div class="hazard-summary-box">
+                        <h4>Important Limitation</h4>
+                        <p>
+                            This is a DEM-based susceptibility preview. It is not yet rainfall-driven flood depth
+                            simulation.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="alerts" class="tab">
+            <div class="placeholder">
+                <h2>Vulnerability Alerts</h2>
+                <p>This section will show affected homes, roads, farms, schools, and facilities later.</p>
+            </div>
+        </section>
+
+        <section id="reports" class="tab">
+            <div class="placeholder">
+                <h2>Reports</h2>
+                <p>Exportable emergency response summaries will be added later.</p>
+            </div>
+        </section>
+    </main>
+
+    <div id="sagip-full-loader" class="sagip-full-loader hidden">
+        <div class="sagip-loader-card">
+            <div class="sagip-loader-icon">🌊</div>
+
+            <h2>Running SAGIP Full Analysis</h2>
+            <p id="sagip-loader-step">Preparing analysis...</p>
+
+            <div class="sagip-loader-bar">
+                <div id="sagip-loader-fill" class="sagip-loader-fill"></div>
+            </div>
+
+            <div class="sagip-loader-percent" id="sagip-loader-percent">
+                0%
+            </div>
+
+            <div class="sagip-loader-details" id="sagip-loader-details">
+                Please wait. Results will appear only after all modules finish loading.
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.js"></script>
+
+    <!-- Three.js for 3D terrain rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <script src="/static/map-selector.js"></script>
+    <script src="/static/terrain-flood.js"></script>
+    <script src="/static/hazard-map.js"></script>
+    <script src="/static/forecast.js"></script>
+    <script src="/static/flood-simulation.js"></script>
+    <script src="/static/full-workflow.js"></script>
+    <script src="/static/app.js"></script>
+</body>
+
+</html>
