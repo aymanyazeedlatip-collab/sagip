@@ -55,94 +55,131 @@ def synthetic_elevation(lat: float, lng: float):
     return round(max(0, elevation), 2)
 
 
-def fetch_elevations_from_opentopodata(points, chunk_size=25):
+def fetch_elevations_from_opentopodata(points, chunk_size=20, max_attempts=6):
     """
-    Fetches real elevation data from OpenTopoData.
+    Fetches 100% real DEM elevation data from OpenTopoData.
 
-    Deployment-safe version:
-    - uses smaller batches
-    - tries GET first
-    - falls back to POST per batch
-    - allows partial missing points
-    - fails if real DEM coverage is too low
+    Strict mode:
+    - No synthetic fallback
+    - No interpolation fallback
+    - Retries failed batches
+    - Retries missing points individually
+    - Fails if even one point is missing
     """
 
-    all_elevations = []
-    errors = []
+    all_elevations = [None for _ in points]
 
     headers = {
-        "User-Agent": "SAGIP-DEM-Prototype/0.1",
+        "User-Agent": "SAGIP-RealDEM-Strict/1.0",
         "Accept": "application/json",
     }
 
-    for start in range(0, len(points), chunk_size):
-        chunk = points[start:start + chunk_size]
-
+    def request_batch(batch_points):
         locations_text = "|".join([
             f"{point['lat']:.6f},{point['lng']:.6f}"
-            for point in chunk
+            for point in batch_points
         ])
 
-        params = {
+        payload = {
             "locations": locations_text,
             "interpolation": "bilinear",
         }
 
-        try:
-            response = requests.get(
-                OPENTOPO_URL,
-                params=params,
-                timeout=20,
-                headers=headers,
-            )
+        last_error = None
 
-            if response.status_code >= 400:
+        for attempt in range(1, max_attempts + 1):
+            try:
                 response = requests.post(
                     OPENTOPO_URL,
-                    data=params,
-                    timeout=20,
+                    data=payload,
+                    timeout=60,
                     headers=headers,
                 )
 
-            response.raise_for_status()
+                if response.status_code >= 400:
+                    response = requests.get(
+                        OPENTOPO_URL,
+                        params=payload,
+                        timeout=60,
+                        headers=headers,
+                    )
 
-            data = response.json()
+                response.raise_for_status()
 
-            if data.get("status") != "OK":
-                raise RuntimeError(
-                    data.get("error", "OpenTopoData request failed."))
+                data = response.json()
 
-            results = data.get("results", [])
+                if data.get("status") != "OK":
+                    raise RuntimeError(
+                        data.get("error", "OpenTopoData request failed.")
+                    )
 
-            if len(results) != len(chunk):
-                raise RuntimeError(
-                    "OpenTopoData returned an unexpected number of results.")
+                results = data.get("results", [])
 
-            for item in results:
-                elevation = item.get("elevation")
+                if len(results) != len(batch_points):
+                    raise RuntimeError(
+                        f"OpenTopoData returned {len(results)} results for {len(batch_points)} requested points."
+                    )
 
-                if elevation is None:
-                    all_elevations.append(None)
-                else:
-                    all_elevations.append(float(elevation))
+                return results
 
-        except Exception as error:
-            errors.append(f"Batch {start // chunk_size + 1}: {str(error)}")
+            except Exception as error:
+                last_error = error
+                time.sleep(0.8 * attempt)
 
-            for _ in chunk:
-                all_elevations.append(None)
-
-        time.sleep(0.12)
-
-    real_count = sum(1 for value in all_elevations if value is not None)
-    coverage = real_count / max(len(points), 1)
-
-    if coverage < 0.35:
-        short_errors = " | ".join(errors[:3])
         raise RuntimeError(
-            f"OpenTopoData real DEM coverage too low: {coverage * 100:.1f}%. "
-            f"Try 20×20 or 40×40 resolution, or retry later. "
-            f"Errors: {short_errors}"
+            f"OpenTopoData batch failed after {max_attempts} attempts. Last error: {last_error}"
+        )
+
+    for start in range(0, len(points), chunk_size):
+        chunk = points[start:start + chunk_size]
+
+        results = request_batch(chunk)
+
+        for offset, item in enumerate(results):
+            elevation = item.get("elevation")
+
+            if elevation is not None:
+                all_elevations[start + offset] = float(elevation)
+
+        time.sleep(0.18)
+
+    missing_indexes = [
+        index for index, elevation in enumerate(all_elevations)
+        if elevation is None
+    ]
+
+    if missing_indexes:
+        for index in missing_indexes:
+            point = points[index]
+
+            results = request_batch([point])
+            elevation = results[0].get("elevation")
+
+            if elevation is not None:
+                all_elevations[index] = float(elevation)
+
+            time.sleep(0.15)
+
+    final_missing = [
+        index for index, elevation in enumerate(all_elevations)
+        if elevation is None
+    ]
+
+    if final_missing:
+        missing_samples = []
+
+        for index in final_missing[:8]:
+            point = points[index]
+            missing_samples.append(
+                f"row {point['row']}, col {point['col']}, lat {point['lat']:.6f}, lng {point['lng']:.6f}"
+            )
+
+        raise RuntimeError(
+            "100% real DEM requirement failed. "
+            f"{len(final_missing)} of {len(points)} DEM points returned no real elevation value. "
+            "SAGIP refused to use synthetic, interpolated, or fake terrain. "
+            "Retry later, move the rectangle slightly, or use a smaller/lower-resolution area. "
+            f"Missing samples: {' | '.join(missing_samples)}"
         )
 
     return all_elevations
@@ -150,58 +187,55 @@ def fetch_elevations_from_opentopodata(points, chunk_size=25):
 
 def build_elevation_grid(points, elevations, resolution: int):
     """
-    Converts flat list of elevations into a 2D grid.
+    Converts 100% real DEM elevation values into a 2D grid.
 
-    Missing real DEM points are filled by nearby real DEM interpolation.
-    Full synthetic fallback is no longer allowed for deployment accuracy.
+    Strict mode:
+    - No synthetic fill
+    - No interpolation fill
+    - Any missing elevation fails the request
     """
 
-    arr = np.full((resolution, resolution), np.nan, dtype=float)
+    if len(elevations) != len(points):
+        raise RuntimeError(
+            f"Elevation count mismatch. Expected {len(points)} values, got {len(elevations)}."
+        )
+
+    missing_indexes = [
+        index for index, elevation in enumerate(elevations)
+        if elevation is None
+    ]
+
+    if missing_indexes:
+        missing_samples = []
+
+        for index in missing_indexes[:8]:
+            point = points[index]
+            missing_samples.append(
+                f"row {point['row']}, col {point['col']}, lat {point['lat']:.6f}, lng {point['lng']:.6f}"
+            )
+
+        raise RuntimeError(
+            "DEM grid contains missing real elevation values. "
+            f"Missing cells: {len(missing_indexes)}. "
+            "SAGIP refused to use synthetic or interpolated terrain. "
+            f"Missing samples: {' | '.join(missing_samples)}"
+        )
+
+    grid = []
 
     index = 0
 
     for row in range(resolution):
+        row_values = []
+
         for col in range(resolution):
             elevation = elevations[index]
-
-            if elevation is not None:
-                arr[row, col] = float(elevation)
-
+            row_values.append(round(float(elevation), 2))
             index += 1
 
-    if np.isnan(arr).all():
-        raise RuntimeError(
-            "No real DEM values were returned. SAGIP refused to use synthetic terrain.")
+        grid.append(row_values)
 
-    rows, cols = arr.shape
-
-    for r in range(rows):
-        for c in range(cols):
-            if not np.isnan(arr[r, c]):
-                continue
-
-            filled = False
-
-            for radius in range(1, 8):
-                r1 = max(0, r - radius)
-                r2 = min(rows, r + radius + 1)
-                c1 = max(0, c - radius)
-                c2 = min(cols, c + radius + 1)
-
-                window = arr[r1:r2, c1:c2]
-                valid = window[~np.isnan(window)]
-
-                if valid.size > 0:
-                    arr[r, c] = float(np.mean(valid))
-                    filled = True
-                    break
-
-            if not filled:
-                point_index = r * cols + c
-                point = points[point_index]
-                arr[r, c] = synthetic_elevation(point["lat"], point["lng"])
-
-    return np.round(arr, 2).tolist()
+    return grid
 
 
 def compute_slope_grid(elevation_grid, width_km: float, height_km: float):
@@ -345,20 +379,21 @@ def generate_elevation_analysis(
 
     except Exception as error:
         raise RuntimeError(
-            "Real DEM elevation fetch failed. SAGIP refused to use full synthetic terrain because it can create wrong flood projections. "
+            "Real DEM elevation fetch failed. "
+            "SAGIP is in strict 100% real DEM mode, so synthetic terrain and interpolation are disabled. "
             f"Reason: {str(error)}"
         )
 
     real_count = sum(1 for value in elevations if value is not None)
     coverage = (real_count / max(len(elevations), 1)) * 100
 
-    if coverage < 95:
-        source = f"Partial OpenTopoData SRTM 30m + interpolation ({coverage:.1f}% real coverage)"
-        warnings.append(
-            f"Some DEM points were missing. SAGIP interpolated missing cells from nearby real DEM values. Real DEM coverage: {coverage:.1f}%."
+    if coverage < 100:
+        raise RuntimeError(
+            f"100% real DEM requirement failed. Real DEM coverage is only {coverage:.2f}%. "
+            "SAGIP refused to generate terrain because fake/interpolated cells are disabled."
         )
-    else:
-        source = f"OpenTopoData SRTM 30m ({coverage:.1f}% real coverage)"
+
+    source = f"OpenTopoData SRTM 30m — 100% real DEM coverage ({coverage:.1f}%)"
 
     elevation_grid = build_elevation_grid(
         points=points,

@@ -45,7 +45,7 @@ async function runFullSagipAnalysis() {
         updateSagipFullLoader(
             18,
             "Generating DEM terrain grid...",
-            "Fetching elevation data and computing slope, low points, and terrain statistics."
+            "Fetching 100% real DEM elevation data. No synthetic or interpolated terrain will be used. This may take longer."
         );
 
         const terrainResponse = await postSagipFullJson("/api/elevation-grid", areaPayload);
