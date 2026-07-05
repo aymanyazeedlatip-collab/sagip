@@ -209,13 +209,23 @@ def create_synthetic_forecast(latitude: float, longitude: float, forecast_days: 
 
     for day_index, (date_key, total) in enumerate(daily_totals.items()):
         total = round_value(total, 2)
+        level = classify_daily_rainfall(total)
+        condition = "Rain" if total > 0 else "Partly cloudy"
+
         daily.append({
             "day_index": day_index,
             "date": date_key,
+            "weather_code": 61 if total > 0 else 2,
+            "condition": condition,
+            "icon": "🌧️" if total > 0 else "🌤️",
+            "temperature_max_c": 29.0,
+            "temperature_min_c": 23.5,
             "precipitation_sum_mm": total,
             "rain_sum_mm": total,
             "precipitation_probability_max_percent": 60 if total > 0 else 20,
-            "level": classify_daily_rainfall(total),
+            "wind_speed_10m_max_kmh": 8.0,
+            "level": level,
+            "advice": build_daily_forecast_advice(level, condition),
         })
 
     summary = summarize_forecast(hourly, daily)

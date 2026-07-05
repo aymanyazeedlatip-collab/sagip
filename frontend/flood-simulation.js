@@ -97,6 +97,17 @@ function renderFloodSimulation(simulation) {
         slider.value = 0;
     }
 
+    const terrainSlider = document.getElementById("terrain-flood-timeline-slider");
+
+    if (terrainSlider) {
+        terrainSlider.min = 0;
+        terrainSlider.max = Math.max(0, simulation.snapshots.length - 1);
+        terrainSlider.step = 1;
+        terrainSlider.value = 0;
+    }
+
+    updateTerrainTimelineReadout(0);
+
     initFloodLocationMap();
     drawFloodLocationStaticLayers();
 
@@ -116,6 +127,7 @@ function showFloodSnapshotByIndex(index) {
 
     index = Math.max(0, Math.min(snapshots.length - 1, index));
     currentFloodSnapshotIndex = index;
+    updateTerrainTimelineReadout(index);
 
     const snapshot = snapshots[index];
 
@@ -535,28 +547,67 @@ function bringLayerGroupToFront(layerGroup) {
     });
 }
 
+function updateTerrainTimelineReadout(index) {
+    const terrainSlider = document.getElementById("terrain-flood-timeline-slider");
+    const terrainLabel = document.getElementById("terrain-flood-timeline-label");
+
+    const simulation = window.latestFloodSimulation || latestFloodSimulation;
+
+    if (terrainSlider && simulation?.snapshots?.length) {
+        terrainSlider.min = 0;
+        terrainSlider.max = Math.max(0, simulation.snapshots.length - 1);
+        terrainSlider.step = 1;
+        terrainSlider.value = index;
+    }
+
+    if (terrainLabel) {
+        const snapshot = simulation?.snapshots?.[index];
+
+        if (snapshot) {
+            terrainLabel.textContent = `Showing 3D flood snapshot ${index + 1} of ${simulation.snapshots.length} · Hour ${snapshot.hour_index ?? 0}`;
+        } else {
+            terrainLabel.textContent = "Run Flood Simulation first, then drag this slider while viewing the 3D terrain.";
+        }
+    }
+}
+
 function initializeExperimentalMode() {
     const slider = document.getElementById("experimental-water-level");
 
     if (!slider) return;
 
     slider.value = 0;
+    slider.min = 0;
+    slider.max = 100;
+    slider.step = 1;
     updateExperimentalWaterLevel(0);
 }
 
-function updateExperimentalWaterLevel(levelCm) {
+function updateExperimentalWaterLevel(levelPercent) {
+    levelPercent = Number(levelPercent || 0);
+
     const label = document.getElementById("experimental-water-level-label");
     const readout = document.getElementById("experimental-level-readout");
 
-    if (label) label.textContent = `${levelCm} cm`;
-    if (readout) readout.textContent = `${levelCm} cm above lowest terrain`;
+    if (label) label.textContent = `${levelPercent}%`;
 
     if (!window.latestTerrainData || !window.latestTerrainData.terrain) {
+        if (readout) readout.textContent = `${levelPercent}% terrain flood level`;
         drawExperimentalEmptyCanvas("Generate DEM terrain first.");
         return;
     }
 
-    const snapshot = buildExperimentalWaterSnapshot(levelCm);
+    const terrain = window.latestTerrainData.terrain;
+    const minElevation = Number(terrain.summary.min_elevation_m || 0);
+    const maxElevation = Number(terrain.summary.max_elevation_m || minElevation + 1);
+    const elevationRange = Math.max(1, maxElevation - minElevation);
+    const waterSurfaceElevation = minElevation + elevationRange * (levelPercent / 100);
+
+    if (readout) {
+        readout.textContent = `${levelPercent}% of terrain height range · water surface ≈ ${waterSurfaceElevation.toFixed(2)} m elevation`;
+    }
+
+    const snapshot = buildExperimentalWaterSnapshot(levelPercent);
 
     drawExperimentalFloodCanvas(snapshot);
     updateExperimentalStats(snapshot);
@@ -578,15 +629,29 @@ function updateExperimentalWaterLevel(levelCm) {
     }
 }
 
-function buildExperimentalWaterSnapshot(levelCm) {
+function buildExperimentalWaterSnapshot(levelPercent) {
+    levelPercent = Number(levelPercent || 0);
+
     const terrain = window.latestTerrainData.terrain;
     const elevationGrid = terrain.elevation_grid;
 
     const rows = elevationGrid.length;
     const cols = elevationGrid[0].length;
 
-    const minElevation = terrain.summary.min_elevation_m;
-    const waterSurfaceElevation = minElevation + levelCm / 100;
+    const minElevation = Number(terrain.summary.min_elevation_m || 0);
+    const maxElevation = Number(terrain.summary.max_elevation_m || minElevation + 1);
+    const elevationRange = Math.max(1, maxElevation - minElevation);
+
+    /*
+      Old behavior used centimeters above the absolute lowest DEM point.
+      In mountain terrain with a 700m+ elevation range, 290 cm only floods tiny low pockets.
+
+      New behavior uses a terrain-relative flood level:
+      0% = lowest DEM elevation
+      100% = highest DEM elevation
+      This makes the manual experiment behave like a broad rising water scenario.
+    */
+    const waterSurfaceElevation = minElevation + elevationRange * (levelPercent / 100);
 
     const depthGrid = [];
     const classGrid = [];
@@ -610,8 +675,10 @@ function buildExperimentalWaterSnapshot(levelCm) {
 
         for (let c = 0; c < cols; c++) {
             const elevation = Number(elevationGrid[r][c]);
-            const depthCm = Math.max(0, (waterSurfaceElevation - elevation) * 100);
-            const roundedDepth = Math.round(depthCm * 100) / 100;
+            const rawDepthCm = Math.max(0, (waterSurfaceElevation - elevation) * 100);
+
+            // Visual/experimental cap so the 2D and 3D overlays remain readable.
+            const roundedDepth = Math.round(Math.min(500, rawDepthCm) * 100) / 100;
 
             const level = classifyExperimentalDepth(roundedDepth);
 
@@ -640,7 +707,7 @@ function buildExperimentalWaterSnapshot(levelCm) {
 
     return {
         hour_index: 0,
-        time: `Experimental water level: ${levelCm} cm`,
+        time: `Experimental terrain flood level: ${levelPercent}%`,
         max_depth_cm: Math.round(maxDepth * 100) / 100,
         mean_depth_cm: Math.round(meanDepth * 100) / 100,
         flooded_cell_count: floodedCells,
@@ -648,7 +715,8 @@ function buildExperimentalWaterSnapshot(levelCm) {
         counts: counts,
         depth_grid_cm: depthGrid,
         class_grid: classGrid,
-        experimental_level_cm: levelCm,
+        experimental_level_percent: levelPercent,
+        experimental_water_surface_elevation_m: Math.round(waterSurfaceElevation * 100) / 100,
     };
 }
 
@@ -701,7 +769,7 @@ function drawExperimentalFloodCanvas(snapshot) {
 
     ctx.fillStyle = "#0f172a";
     ctx.font = "13px Outfit, sans-serif";
-    ctx.fillText(`Experimental water level: ${snapshot.experimental_level_cm} cm`, 14, 24);
+    ctx.fillText(`Experimental terrain flood level: ${snapshot.experimental_level_percent ?? 0}%`, 14, 24);
 }
 
 function updateExperimentalStats(snapshot) {

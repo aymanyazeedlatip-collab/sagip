@@ -144,8 +144,7 @@
                     <p class="eyebrow">Step 3</p>
                     <h2>3D Terrain Visualization</h2>
                     <p>
-                        Render the selected DEM grid as a 3D terrain surface. Floodwater simulation will be added after
-                        this.
+                        Render the selected DEM grid as a 3D floodable terrain surface. The water surface updates with the live rainfall-based flood timeline.
                     </p>
                 </div>
             </div>
@@ -168,6 +167,9 @@
                                 onclick="toggleTerrainColorMode()">
                                 Gray Mode
                             </button>
+                            <button class="secondary-btn small-btn" onclick="applyLatestFloodSnapshotToTerrain()">
+                                Apply Floodwater
+                            </button>
                         </div>
                     </div>
 
@@ -187,6 +189,68 @@
                     <p class="control-help">
                         Increase this if the terrain looks too flat. Use lower values for municipality-scale scans.
                     </p>
+
+                    <div class="terrain-info-box terrain-flood-control-box">
+                        <h4>Live 3D Floodwater Controls</h4>
+                        <p class="legend-note">
+                            This uses the real SAGIP flood snapshots from the DEM, live rainfall forecast, water-body scan,
+                            and backend flood simulation. Move the Flood Simulation timeline slider below to change the
+                            water level on this 3D map.
+                        </p>
+
+                        <div class="terrain-flood-control-grid">
+                            <div class="terrain-flood-mini-stat">
+                                <span>Timeline</span>
+                                <strong id="terrain-flood-hour">—</strong>
+                            </div>
+                            <div class="terrain-flood-mini-stat">
+                                <span>Rainfall</span>
+                                <strong id="terrain-flood-rainfall">—</strong>
+                            </div>
+                            <div class="terrain-flood-mini-stat">
+                                <span>Max Depth</span>
+                                <strong id="terrain-flood-max-depth">—</strong>
+                            </div>
+                            <div class="terrain-flood-mini-stat">
+                                <span>Flooded Cells</span>
+                                <strong id="terrain-flood-cells">—</strong>
+                            </div>
+                            <div class="terrain-flood-mini-stat full-line">
+                                <span>3D Risk Level</span>
+                                <strong id="terrain-flood-risk">—</strong>
+                            </div>
+                        </div>
+
+                        <label class="field-label" for="terrain-flood-timeline-slider">
+                            3D Flood Timeline
+                        </label>
+                        <input type="range" id="terrain-flood-timeline-slider" min="0" max="0" step="1" value="0"
+                            oninput="showFloodSnapshotByIndex(Number(this.value))" />
+                        <div class="terrain-flood-timeline-readout" id="terrain-flood-timeline-label">
+                            Run Flood Simulation first, then drag this slider while viewing the 3D terrain.
+                        </div>
+
+                        <label class="field-label" for="terrain-flood-opacity">
+                            Floodwater Opacity: <span id="terrain-flood-opacity-label">0.72</span>
+                        </label>
+                        <input type="range" id="terrain-flood-opacity" min="0.2" max="0.95" step="0.05" value="0.72"
+                            oninput="setTerrainFloodWaterOpacity(this.value)" />
+
+                        <label class="field-label" for="terrain-flood-height-scale">
+                            Water Height Scale: <span id="terrain-flood-height-label">1.0×</span>
+                        </label>
+                        <input type="range" id="terrain-flood-height-scale" min="0.4" max="3" step="0.1" value="1"
+                            oninput="setTerrainFloodHeightScale(this.value)" />
+
+                        <label class="terrain-checkbox-line">
+                            <input type="checkbox" checked oninput="toggleTerrainFloodWater(this.checked)" />
+                            Show 3D floodwater surface
+                        </label>
+
+                        <button class="secondary-btn full" onclick="applyLatestFloodSnapshotToTerrain()">
+                            Apply Current Flood Snapshot to 3D
+                        </button>
+                    </div>
 
                     <div class="terrain-info-box">
                         <h4>Current Terrain Data</h4>
@@ -595,16 +659,16 @@
                     <div class="experimental-controls">
                         <div>
                             <label class="field-label" for="experimental-water-level">
-                                Water Level Above Lowest Terrain
+                                Terrain Flood Level
                             </label>
 
-                            <input type="range" id="experimental-water-level" min="0" max="500" step="10" value="0"
+                            <input type="range" id="experimental-water-level" min="0" max="100" step="1" value="0"
                                 oninput="updateExperimentalWaterLevel(Number(this.value))" />
 
                             <div class="experimental-slider-labels">
-                                <span>0 cm</span>
-                                <strong id="experimental-water-level-label">0 cm</strong>
-                                <span>500 cm</span>
+                                <span>0%</span>
+                                <strong id="experimental-water-level-label">0%</strong>
+                                <span>100%</span>
                             </div>
                         </div>
 
@@ -628,15 +692,14 @@
 
                         <div class="experimental-info-panel">
                             <h4>Experimental Result</h4>
-                            <p><strong>Water level:</strong> <span id="experimental-level-readout">—</span></p>
+                            <p><strong>Terrain flood level:</strong> <span id="experimental-level-readout">—</span></p>
                             <p><strong>Flooded cells:</strong> <span id="experimental-flooded-cells">—</span></p>
                             <p><strong>Max experimental depth:</strong> <span id="experimental-max-depth">—</span></p>
                             <p><strong>Flooded area share:</strong> <span id="experimental-area-share">—</span></p>
 
                             <div class="flood-warning-note">
-                                This mode does not use rainfall forecast. It only raises a virtual water surface over
-                                the DEM to
-                                show which low-elevation cells are submerged first.
+                                This mode does not use rainfall forecast. It raises a terrain-relative water surface over
+                                the DEM, so high values flood lowlands while mountains remain exposed.
                             </div>
                         </div>
                     </div>

@@ -2242,3 +2242,73 @@ select {
         grid-template-columns: 1fr;
     }
 }
+/* LIVE 3D FLOODWATER CONTROLS */
+
+.terrain-flood-control-box {
+    border-color: rgba(14, 165, 233, 0.55);
+    background: linear-gradient(180deg, #f0f9ff 0%, #ffffff 100%);
+}
+
+.terrain-flood-control-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin: 14px 0;
+}
+
+.terrain-flood-mini-stat {
+    border: 1px solid var(--border);
+    background: #ffffff;
+    border-radius: 14px;
+    padding: 11px;
+}
+
+.terrain-flood-mini-stat.full-line {
+    grid-column: 1 / -1;
+}
+
+.terrain-flood-mini-stat span {
+    display: block;
+    color: var(--muted);
+    font-size: 12px;
+    margin-bottom: 5px;
+}
+
+.terrain-flood-mini-stat strong {
+    display: block;
+    color: var(--sky-dark);
+    font-family: var(--font-heading);
+    font-size: 18px;
+}
+
+.terrain-checkbox-line {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    color: var(--muted);
+    font-size: 13px;
+    margin: 12px 0;
+}
+
+.terrain-checkbox-line input {
+    accent-color: var(--sky-dark);
+}
+
+
+/* LIVE 3D FLOOD NATURAL PATCH */
+.terrain-flood-timeline-readout {
+    margin-top: -6px;
+    margin-bottom: 14px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: #f0f9ff;
+    border: 1px solid #bae6fd;
+    color: #0369a1;
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+#terrain-flood-timeline-slider {
+    width: 100%;
+    accent-color: #0284c7;
+}
