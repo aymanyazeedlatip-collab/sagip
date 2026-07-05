@@ -73,3 +73,14 @@ class FloodSimulationRequest(BaseModel):
         le=3.0,
         description="Scenario multiplier for runoff intensity"
     )
+
+
+class VulnerabilityAnalysisRequest(BaseModel):
+    terrain: dict = Field(...,
+                          description="Terrain object from /api/elevation-grid")
+    flood_simulation: dict = Field(...,
+                                   description="Simulation object from /api/flood/simulate")
+    water_bodies: list = Field(
+        default_factory=list,
+        description="Water bodies from /api/water-bodies"
+    )

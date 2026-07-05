@@ -15,6 +15,8 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.min.css" />
 
     <link rel="stylesheet" href="/static/style.css" />
+    <link rel="stylesheet" href="/static/vulnerability-alerts.css" />
+    <link rel="stylesheet" href="/static/reports.css" />
 </head>
 
 <body>
@@ -87,34 +89,105 @@
 
                 <div class="panel control-panel">
                     <h3>Rectangle Controls</h3>
+                    <p class="rectangle-control-subtitle">
+                        Choose how large the flood analysis rectangle should be. Smaller areas are faster and more
+                        detailed.
+                    </p>
 
-                    <button class="secondary-btn" onclick="moveRectangleToMapCenter()">Move Rectangle to Map
-                        Center</button>
+                    <div class="rectangle-control-section">
+                        <div class="rectangle-section-title">
+                            <span>Quick Actions</span>
+                            <small>Position the scan area</small>
+                        </div>
 
-                    <button class="secondary-btn location-btn" id="detect-location-btn" onclick="detectUserLocation()">
-                        📍 Detect My Current Location
-                    </button>
+                        <div class="rectangle-action-grid">
+                            <button class="rectangle-action-btn" onclick="moveRectangleToMapCenter()">
+                                <span class="rectangle-action-icon">🎯</span>
+                                <div>
+                                    <strong>Center Rectangle</strong>
+                                    <small>Move scan box to map center</small>
+                                </div>
+                            </button>
 
-                    <button class="secondary-btn" onclick="setRectangleSizeKm(1)">Barangay Detail — 1 km × 1 km</button>
-                    <button class="secondary-btn" onclick="setRectangleSizeKm(3)">Local Area — 3 km × 3 km</button>
-                    <button class="secondary-btn" onclick="setRectangleSizeKm(5)">District Area — 5 km × 5 km</button>
-                    <button class="secondary-btn" onclick="setRectangleSizeKm(10)">Wide Area — 10 km × 10 km</button>
-                    <button class="secondary-btn" onclick="setRectangleSizeKm(20)">Municipality Scan — 20 km × 20
-                        km</button>
-                    <button class="secondary-btn" onclick="setRectangleSizeKm(30)">Large Municipality Scan — 30 km × 30
-                        km</button>
-                    <button class="secondary-btn" onclick="setRectangleSizeKm(40)">Maximum Prototype Scan — 40 km × 40
-                        km</button>
+                            <button class="rectangle-action-btn location-btn" id="detect-location-btn"
+                                onclick="detectUserLocation()">
+                                <span class="rectangle-action-icon">📍</span>
+                                <div>
+                                    <strong>Detect Location</strong>
+                                    <small>Use your current position</small>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
 
-                    <label class="field-label" for="grid-resolution">Grid Resolution</label>
-                    <select id="grid-resolution">
-                        <option value="20">20 × 20 — Very Fast / Municipality Preview</option>
-                        <option value="25">25 × 25 — Fast Municipality Scan</option>
-                        <option value="30">30 × 30 — Recommended for Large Areas</option>
-                        <option value="40">40 × 40 — Balanced</option>
-                        <option value="60">60 × 60 — Detailed</option>
-                        <option value="80" selected>80 × 80 — High Detail / Default</option>
-                    </select>
+                    <div class="rectangle-control-section">
+                        <div class="rectangle-section-title">
+                            <span>Scan Area Presets</span>
+                            <small>Select analysis coverage</small>
+                        </div>
+
+                        <div class="area-preset-grid">
+                            <button class="area-preset-card active" data-size="1" onclick="setRectangleSizeKm(1)">
+                                <span class="preset-size">1 km</span>
+                                <strong>Barangay Detail</strong>
+                                <small>High-detail focused scan</small>
+                            </button>
+
+                            <button class="area-preset-card" data-size="3" onclick="setRectangleSizeKm(3)">
+                                <span class="preset-size">3 km</span>
+                                <strong>Local Area</strong>
+                                <small>Neighborhood-scale scan</small>
+                            </button>
+
+                            <button class="area-preset-card" data-size="5" onclick="setRectangleSizeKm(5)">
+                                <span class="preset-size">5 km</span>
+                                <strong>District Area</strong>
+                                <small>Balanced local coverage</small>
+                            </button>
+
+                            <button class="area-preset-card" data-size="10" onclick="setRectangleSizeKm(10)">
+                                <span class="preset-size">10 km</span>
+                                <strong>Wide Area</strong>
+                                <small>Broader flood overview</small>
+                            </button>
+
+                            <button class="area-preset-card" data-size="20" onclick="setRectangleSizeKm(20)">
+                                <span class="preset-size">20 km</span>
+                                <strong>Municipality</strong>
+                                <small>Large-area scan</small>
+                            </button>
+
+                            <button class="area-preset-card" data-size="30" onclick="setRectangleSizeKm(30)">
+                                <span class="preset-size">30 km</span>
+                                <strong>Large Municipality</strong>
+                                <small>Slower regional scan</small>
+                            </button>
+
+                            <button class="area-preset-card wide-preset" data-size="40"
+                                onclick="setRectangleSizeKm(40)">
+                                <span class="preset-size">40 km</span>
+                                <strong>Maximum Prototype</strong>
+                                <small>Largest supported scan area</small>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="rectangle-control-section">
+                        <div class="rectangle-section-title">
+                            <span>Grid Detail</span>
+                            <small>Higher resolution = slower but more detailed</small>
+                        </div>
+
+                        <label class="field-label compact-label" for="grid-resolution">Grid Resolution</label>
+                        <select id="grid-resolution" class="rectangle-resolution-select">
+                            <option value="20">20 × 20 — Very Fast / Municipality Preview</option>
+                            <option value="25">25 × 25 — Fast Municipality Scan</option>
+                            <option value="30">30 × 30 — Recommended for Large Areas</option>
+                            <option value="40">40 × 40 — Recommended for Local Areas</option>
+                            <option value="60">60 × 60 — Detailed Barangay Scan</option>
+                            <option value="80" selected>80 × 80 — High Detail / Default</option>
+                        </select>
+                    </div>
 
                     <div class="bbox-box">
                         <h4>Selected Rectangle</h4>
@@ -144,7 +217,8 @@
                     <p class="eyebrow">Step 3</p>
                     <h2>3D Terrain Visualization</h2>
                     <p>
-                        Render the selected DEM grid as a 3D floodable terrain surface. The water surface updates with the live rainfall-based flood timeline.
+                        Render the selected DEM grid as a 3D floodable terrain surface. The water surface updates with
+                        the live rainfall-based flood timeline.
                     </p>
                 </div>
             </div>
@@ -193,7 +267,8 @@
                     <div class="terrain-info-box terrain-flood-control-box">
                         <h4>Live 3D Floodwater Controls</h4>
                         <p class="legend-note">
-                            This uses the real SAGIP flood snapshots from the DEM, live rainfall forecast, water-body scan,
+                            This uses the real SAGIP flood snapshots from the DEM, live rainfall forecast, water-body
+                            scan,
                             and backend flood simulation. Move the Flood Simulation timeline slider below to change the
                             water level on this 3D map.
                         </p>
@@ -698,7 +773,8 @@
                             <p><strong>Flooded area share:</strong> <span id="experimental-area-share">—</span></p>
 
                             <div class="flood-warning-note">
-                                This mode does not use rainfall forecast. It raises a terrain-relative water surface over
+                                This mode does not use rainfall forecast. It raises a terrain-relative water surface
+                                over
                                 the DEM, so high values flood lowlands while mountains remain exposed.
                             </div>
                         </div>
@@ -801,16 +877,352 @@
         </section>
 
         <section id="alerts" class="tab">
-            <div class="placeholder">
-                <h2>Vulnerability Alerts</h2>
-                <p>This section will show affected homes, roads, farms, schools, and facilities later.</p>
+            <div class="page-header">
+                <div>
+                    <p class="eyebrow">Step 7</p>
+                    <h2>Vulnerability Alerts</h2>
+                    <p>
+                        Converts flood simulation results into emergency intelligence: vulnerable zones,
+                        hotspot ranking, time-to-impact, flood duration, and possible high-ground candidates.
+                    </p>
+                </div>
+
+                <div class="vulnerability-action-row">
+                    <span class="vulnerability-status waiting" id="vulnerability-status">Waiting</span>
+                    <button class="primary-btn" onclick="runVulnerabilityAnalysisForLatestData()">
+                        Analyze Vulnerable Areas
+                    </button>
+                </div>
+            </div>
+
+            <div class="vulnerability-summary-grid">
+                <div class="vuln-summary-card" id="vuln-overall-card">
+                    <span>Overall Alert</span>
+                    <strong id="vuln-overall-level">—</strong>
+                </div>
+
+                <div class="vuln-summary-card">
+                    <span>Overall Score</span>
+                    <strong id="vuln-overall-score">—</strong>
+                </div>
+
+                <div class="vuln-summary-card">
+                    <span>Critical Cells</span>
+                    <strong id="vuln-critical-count">—</strong>
+                </div>
+
+                <div class="vuln-summary-card">
+                    <span>Earliest Impact</span>
+                    <strong id="vuln-earliest-impact">—</strong>
+                </div>
+
+                <div class="vuln-summary-card">
+                    <span>Peak Depth</span>
+                    <strong id="vuln-peak-depth">—</strong>
+                </div>
+
+                <div class="vuln-summary-card">
+                    <span>Hotspots</span>
+                    <strong id="vuln-hotspot-count">—</strong>
+                </div>
+            </div>
+
+            <div class="vulnerability-layout">
+                <div class="panel vulnerability-map-panel">
+                    <div class="vulnerability-toolbar">
+                        <div>
+                            <h3>Vulnerability Intelligence Map</h3>
+                            <p>
+                                Yellow-orange-red shows areas that require attention first. Blue mode shows flood depth.
+                            </p>
+                        </div>
+
+                        <div class="vulnerability-map-controls">
+                            <select id="vulnerability-layer-select" onchange="changeVulnerabilityLayer(this.value)">
+                                <option value="score" selected>Vulnerability Score</option>
+                                <option value="depth">Peak Flood Depth</option>
+                                <option value="duration">Flood Duration</option>
+                                <option value="impact">Time to First Impact</option>
+                            </select>
+
+                            <button class="secondary-btn small-btn"
+                                onclick="renderVulnerabilityMap(window.latestVulnerabilityAnalysis)">
+                                Refresh Map
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="vulnerability-leaflet-map"></div>
+
+                    <div class="vulnerability-legend">
+                        <div class="vuln-legend-row">
+                            <span class="vuln-color vuln-critical"></span>
+                            <p><strong>Critical</strong> — priority warning / evacuation readiness</p>
+                        </div>
+                        <div class="vuln-legend-row">
+                            <span class="vuln-color vuln-high"></span>
+                            <p><strong>High</strong> — close monitoring and drainage/access checks</p>
+                        </div>
+                        <div class="vuln-legend-row">
+                            <span class="vuln-color vuln-moderate"></span>
+                            <p><strong>Moderate</strong> — monitor if rainfall increases</p>
+                        </div>
+                        <div class="vuln-legend-row">
+                            <span class="vuln-color vuln-low"></span>
+                            <p><strong>Low</strong> — limited alert concern</p>
+                        </div>
+                        <div class="vuln-legend-row">
+                            <span class="vuln-color vuln-minimal"></span>
+                            <p><strong>Minimal</strong> — lowest computed vulnerability</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel vulnerability-side-panel">
+                    <h3>Emergency Intelligence</h3>
+
+                    <div class="vulnerability-intelligence">
+                        <h4>Situation Summary</h4>
+                        <p id="vuln-intelligence-summary">
+                            Run a flood simulation first so SAGIP can identify vulnerable areas.
+                        </p>
+                    </div>
+
+                    <div class="vulnerability-layer-toggles">
+                        <label>
+                            <input type="checkbox" id="vuln-toggle-hotspots" checked
+                                onchange="refreshVulnerabilityMarkers()" />
+                            Show priority hotspots
+                        </label>
+
+                        <label>
+                            <input type="checkbox" id="vuln-toggle-safezones" checked
+                                onchange="refreshVulnerabilityMarkers()" />
+                            Show potential high-ground candidates
+                        </label>
+                    </div>
+
+                    <h3>Recommended Actions</h3>
+                    <div class="vulnerability-recommendations" id="vulnerability-recommendations">
+                        <div class="vuln-empty">Recommendations will appear after analysis.</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="vulnerability-bottom-grid">
+                <div class="panel vulnerability-hotspot-panel">
+                    <h3>Priority Vulnerability Hotspots</h3>
+                    <p class="control-help">
+                        SAGIP clusters vulnerable cells so the user can inspect zones instead of thousands of raw grid
+                        cells.
+                    </p>
+
+                    <div class="vulnerability-hotspot-list" id="vulnerability-hotspot-list">
+                        <div class="vuln-empty">No hotspots yet. Run vulnerability analysis first.</div>
+                    </div>
+                </div>
+
+                <div class="panel vulnerability-safe-panel">
+                    <h3>Potential High-Ground Candidates</h3>
+                    <p class="control-help">
+                        These are not official evacuation sites. They are DEM-based high-ground candidates that need
+                        field verification.
+                    </p>
+
+                    <div class="vulnerability-safe-zone-list" id="vulnerability-safe-zone-list">
+                        <div class="vuln-empty">No safe-zone candidates yet.</div>
+                    </div>
+                </div>
             </div>
         </section>
 
         <section id="reports" class="tab">
-            <div class="placeholder">
-                <h2>Reports</h2>
-                <p>Exportable emergency response summaries will be added later.</p>
+            <div class="page-header">
+                <div>
+                    <p class="eyebrow">Step 8</p>
+                    <h2>Reports</h2>
+                    <p>
+                        Generate a structured flood-risk assessment report from terrain, rainfall, flood simulation,
+                        water-body, and vulnerability results.
+                    </p>
+                </div>
+
+                <span class="report-status-badge missing" id="report-status-badge">Incomplete Data</span>
+            </div>
+
+            <div class="report-ready-grid">
+                <div class="report-ready-card missing" id="report-ready-terrain">
+                    <span>Terrain Data</span>
+                    <strong>Missing</strong>
+                </div>
+
+                <div class="report-ready-card missing" id="report-ready-rainfall">
+                    <span>Rainfall Forecast</span>
+                    <strong>Missing</strong>
+                </div>
+
+                <div class="report-ready-card missing" id="report-ready-flood">
+                    <span>Flood Simulation</span>
+                    <strong>Missing</strong>
+                </div>
+
+                <div class="report-ready-card missing" id="report-ready-vulnerability">
+                    <span>Vulnerability Analysis</span>
+                    <strong>Missing</strong>
+                </div>
+
+                <div class="report-ready-card missing" id="report-ready-water">
+                    <span>Water Bodies</span>
+                    <strong>Missing</strong>
+                </div>
+
+                <div class="report-ready-card">
+                    <span>Report Version</span>
+                    <strong>v1.0</strong>
+                </div>
+            </div>
+
+            <div class="report-builder-grid">
+                <div class="panel report-controls-panel">
+                    <h3>Report Builder</h3>
+                    <p class="control-help">
+                        Choose the report type and sections to include. The safest export is Print / Save as PDF.
+                    </p>
+
+                    <div class="report-readiness-warning missing" id="report-readiness-warning">
+                        <strong>Missing data:</strong> run Full SAGIP Analysis first.
+                    </div>
+
+                    <div class="report-control-group">
+                        <label for="report-type-select">Report Type</label>
+                        <select id="report-type-select">
+                            <option value="executive">Executive Summary</option>
+                            <option value="technical" selected>Full Technical Report</option>
+                            <option value="emergency">Emergency Action Report</option>
+                        </select>
+                    </div>
+
+                    <div class="report-control-group">
+                        <label for="report-title-input">Report Title</label>
+                        <input id="report-title-input" type="text" value="SAGIP Flood Risk Assessment Report" />
+                    </div>
+
+                    <div class="report-control-group">
+                        <label for="report-prepared-for-input">Prepared For</label>
+                        <input id="report-prepared-for-input" type="text" value="Local Flood Risk Review" />
+                    </div>
+
+                    <div class="report-control-group">
+                        <label for="report-prepared-by-input">Prepared By</label>
+                        <input id="report-prepared-by-input" type="text" value="SAGIP System" />
+                    </div>
+
+                    <div class="report-control-group">
+                        <label>Include Sections</label>
+
+                        <div class="report-checkbox-grid">
+                            <label><input class="report-option-checkbox" id="report-include-area" type="checkbox"
+                                    checked />
+                                Area Information</label>
+                            <label><input class="report-option-checkbox" id="report-include-terrain" type="checkbox"
+                                    checked />
+                                Terrain Analysis</label>
+                            <label><input class="report-option-checkbox" id="report-include-rainfall" type="checkbox"
+                                    checked />
+                                Rainfall Forecast</label>
+                            <label><input class="report-option-checkbox" id="report-include-water" type="checkbox"
+                                    checked />
+                                Water Bodies</label>
+                            <label><input class="report-option-checkbox" id="report-include-flood" type="checkbox"
+                                    checked />
+                                Flood Simulation</label>
+                            <label><input class="report-option-checkbox" id="report-include-vulnerability"
+                                    type="checkbox" checked /> Vulnerability Assessment</label>
+                            <label><input class="report-option-checkbox" id="report-include-hotspots" type="checkbox"
+                                    checked />
+                                Priority Hotspots</label>
+                            <label><input class="report-option-checkbox" id="report-include-safezones" type="checkbox"
+                                    checked /> High-Ground Candidates</label>
+                            <label><input class="report-option-checkbox" id="report-include-timeline" type="checkbox"
+                                    checked />
+                                Flood Timeline</label>
+                            <label><input class="report-option-checkbox" id="report-include-methodology" type="checkbox"
+                                    checked /> Methodology</label>
+                            <label><input class="report-option-checkbox" id="report-include-limitations" type="checkbox"
+                                    checked /> Limitations</label>
+                        </div>
+                    </div>
+
+                    <div class="report-actions">
+                        <button class="primary-btn" onclick="generateSagipReportPreview()">Generate Report
+                            Preview</button>
+                        <button class="secondary-btn" onclick="refreshReportsReadiness()">Refresh Report Data</button>
+                        <button class="secondary-btn" onclick="printSagipReport()">Print / Save as PDF</button>
+                        <button class="secondary-btn" onclick="downloadSagipReportHtml()">Download HTML Report</button>
+                        <button class="secondary-btn" onclick="downloadSagipReportJson()">Download Raw JSON</button>
+                        <button class="secondary-btn" onclick="downloadSagipReportCsvBundle()">Download CSV
+                            Tables</button>
+                    </div>
+
+                    <div class="report-status-message" id="report-status-message">
+                        Waiting for report generation.
+                    </div>
+                </div>
+
+                <div class="panel report-preview-panel">
+                    <div class="report-preview-toolbar">
+                        <div>
+                            <h3>Report Preview</h3>
+                            <p>Formal report preview. Use Print / Save as PDF to export.</p>
+                        </div>
+                    </div>
+
+                    <div class="report-preview" id="report-preview">
+                        <div class="report-empty-preview">
+                            <h3>No report generated yet</h3>
+                            <p>Run Full SAGIP Analysis, then click Generate Report Preview.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel report-findings-panel">
+                    <h3>Key Findings</h3>
+                    <p class="control-help">
+                        Quick values that will be used in the report.
+                    </p>
+
+                    <div class="report-findings-grid">
+                        <div class="report-finding-card">
+                            <span>Overall Risk</span>
+                            <strong id="report-finding-risk">—</strong>
+                        </div>
+
+                        <div class="report-finding-card">
+                            <span>Vulnerability Score</span>
+                            <strong id="report-finding-score">—</strong>
+                        </div>
+
+                        <div class="report-finding-card">
+                            <span>Peak Depth</span>
+                            <strong id="report-finding-depth">—</strong>
+                        </div>
+
+                        <div class="report-finding-card">
+                            <span>Earliest Impact</span>
+                            <strong id="report-finding-impact">—</strong>
+                        </div>
+
+                        <div class="report-finding-card">
+                            <span>Top Hotspot</span>
+                            <strong id="report-finding-hotspot">—</strong>
+                        </div>
+
+                        <div class="report-finding-card">
+                            <span>Terrain Type</span>
+                            <strong id="report-finding-terrain">—</strong>
+                        </div>
+                    </div>
+                </div>
             </div>
         </section>
     </main>
@@ -847,6 +1259,8 @@
     <script src="/static/hazard-map.js"></script>
     <script src="/static/forecast.js"></script>
     <script src="/static/flood-simulation.js"></script>
+    <script src="/static/vulnerability-alerts.js"></script>
+    <script src="/static/reports.js"></script>
     <script src="/static/full-workflow.js"></script>
     <script src="/static/app.js"></script>
 </body>

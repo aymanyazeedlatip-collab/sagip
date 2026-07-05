@@ -220,6 +220,14 @@ function renderAllSagipResultsAfterFullRun() {
     if (typeof initializeExperimentalMode === "function") {
         initializeExperimentalMode();
     }
+
+    if (
+        typeof runVulnerabilityAnalysisForLatestData === "function" &&
+        window.latestTerrainData?.terrain &&
+        window.latestFloodSimulation
+    ) {
+        runVulnerabilityAnalysisForLatestData({ silent: true });
+    }
 }
 
 function showSagipFullLoader() {

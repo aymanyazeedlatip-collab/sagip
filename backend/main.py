@@ -4,12 +4,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
-from app.schemas import RectangleAreaRequest, ElevationGridRequest, WaterBodiesRequest, WeatherForecastRequest, FloodSimulationRequest
+from app.schemas import RectangleAreaRequest, ElevationGridRequest, WaterBodiesRequest, WeatherForecastRequest, FloodSimulationRequest, VulnerabilityAnalysisRequest
 from app.utils_geo import analyze_bbox
 from app.terrain_engine import generate_elevation_analysis
 from app.water_engine import scan_water_bodies
 from app.weather_engine import get_rainfall_forecast
 from app.flood_engine import run_flood_simulation
+from app.vulnerability_engine import analyze_vulnerability
 
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -212,4 +213,28 @@ def simulate_flood(payload: FloodSimulationRequest):
         raise HTTPException(
             status_code=500,
             detail=f"Flood simulation failed: {str(error)}"
+        )
+
+
+@app.post("/api/vulnerability/analyze")
+def analyze_vulnerability_alerts(payload: VulnerabilityAnalysisRequest):
+    try:
+        vulnerability = analyze_vulnerability(
+            terrain=payload.terrain,
+            flood_simulation=payload.flood_simulation,
+            water_bodies=payload.water_bodies,
+        )
+
+        return {
+            "status": "success",
+            "vulnerability": vulnerability,
+        }
+
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error))
+
+    except Exception as error:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Vulnerability analysis failed: {str(error)}"
         )

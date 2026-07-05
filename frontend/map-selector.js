@@ -90,7 +90,20 @@ function setRectangleSizeKm(sizeKm) {
         }
     }
 
+    updateRectanglePresetUI(sizeKm);
     createRectangleAtCenter(currentSizeKm);
+}
+
+function updateRectanglePresetUI(sizeKm) {
+    document.querySelectorAll(".area-preset-card").forEach((button) => {
+        const buttonSize = Number(button.dataset.size);
+
+        if (buttonSize === Number(sizeKm)) {
+            button.classList.add("active");
+        } else {
+            button.classList.remove("active");
+        }
+    });
 }
 
 function getSelectedBbox() {
@@ -121,6 +134,8 @@ window.addEventListener("DOMContentLoaded", () => {
     if (document.getElementById("area-map")) {
         initAreaMap();
     }
+
+    updateRectanglePresetUI(currentSizeKm);
 });
 
 function detectUserLocation() {

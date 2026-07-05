@@ -2242,6 +2242,7 @@ select {
         grid-template-columns: 1fr;
     }
 }
+
 /* LIVE 3D FLOODWATER CONTROLS */
 
 .terrain-flood-control-box {
@@ -2311,4 +2312,228 @@ select {
 #terrain-flood-timeline-slider {
     width: 100%;
     accent-color: #0284c7;
+}
+
+/* ═══════════════════════════════════════
+   Clean Rectangle Controls UI
+═══════════════════════════════════════ */
+
+.rectangle-control-subtitle {
+    margin: 4px 0 18px;
+    color: #64748b;
+    font-size: 0.92rem;
+    line-height: 1.45;
+}
+
+.rectangle-control-section {
+    padding: 14px;
+    margin-bottom: 14px;
+    border: 1px solid #dbeafe;
+    border-radius: 18px;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
+}
+
+.rectangle-section-title {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: flex-start;
+    margin-bottom: 12px;
+}
+
+.rectangle-section-title span {
+    color: #0f172a;
+    font-weight: 900;
+    font-size: 0.95rem;
+}
+
+.rectangle-section-title small {
+    color: #64748b;
+    font-size: 0.75rem;
+    text-align: right;
+    line-height: 1.25;
+}
+
+.rectangle-action-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+}
+
+.rectangle-action-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    border-radius: 16px;
+    border: 1px solid #bfdbfe;
+    background: #ffffff;
+    color: #075985;
+    cursor: pointer;
+    transition: 0.18s ease;
+    text-align: left;
+}
+
+.rectangle-action-btn:hover {
+    transform: translateY(-1px);
+    border-color: #38bdf8;
+    box-shadow: 0 10px 24px rgba(14, 165, 233, 0.14);
+    background: #f0f9ff;
+}
+
+.rectangle-action-btn.detecting {
+    opacity: 0.75;
+    pointer-events: none;
+}
+
+.rectangle-action-icon {
+    width: 38px;
+    height: 38px;
+    flex: 0 0 38px;
+    display: grid;
+    place-items: center;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #e0f2fe, #dbeafe);
+    font-size: 1.15rem;
+}
+
+.rectangle-action-btn strong {
+    display: block;
+    color: #0369a1;
+    font-size: 0.92rem;
+}
+
+.rectangle-action-btn small {
+    display: block;
+    color: #64748b;
+    margin-top: 2px;
+    font-size: 0.76rem;
+}
+
+.area-preset-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.area-preset-card {
+    min-height: 104px;
+    padding: 12px;
+    border-radius: 16px;
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    cursor: pointer;
+    text-align: left;
+    transition: 0.18s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.area-preset-card:hover {
+    transform: translateY(-2px);
+    border-color: #38bdf8;
+    box-shadow: 0 12px 24px rgba(14, 165, 233, 0.13);
+    background: #f8fbff;
+}
+
+.area-preset-card.active {
+    border-color: #0284c7;
+    background: linear-gradient(135deg, #e0f2fe 0%, #ffffff 100%);
+    box-shadow: 0 12px 28px rgba(14, 165, 233, 0.18);
+}
+
+.area-preset-card.active::after {
+    content: "Selected";
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    padding: 4px 7px;
+    border-radius: 999px;
+    background: #0284c7;
+    color: #ffffff;
+    font-size: 0.62rem;
+    font-weight: 900;
+    letter-spacing: 0.03em;
+}
+
+.area-preset-card .preset-size {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 48px;
+    padding: 5px 8px;
+    margin-bottom: 9px;
+    border-radius: 999px;
+    background: #eff6ff;
+    color: #0369a1;
+    font-size: 0.78rem;
+    font-weight: 900;
+}
+
+.area-preset-card strong {
+    display: block;
+    color: #0f172a;
+    font-size: 0.9rem;
+    line-height: 1.15;
+    margin-bottom: 5px;
+}
+
+.area-preset-card small {
+    display: block;
+    color: #64748b;
+    font-size: 0.72rem;
+    line-height: 1.25;
+}
+
+.area-preset-card.wide-preset {
+    grid-column: 1 / -1;
+    min-height: 86px;
+}
+
+.rectangle-resolution-select {
+    margin-top: 7px;
+}
+
+.compact-label {
+    margin-top: 0;
+}
+
+.bbox-box {
+    border-radius: 18px;
+}
+
+.bbox-box h4 {
+    margin-bottom: 10px;
+}
+
+.bbox-box p {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 7px 0;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.bbox-box p:last-child {
+    border-bottom: 0;
+}
+
+@media (max-width: 900px) {
+    .area-preset-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .area-preset-card.wide-preset {
+        grid-column: auto;
+    }
+
+    .rectangle-section-title {
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .rectangle-section-title small {
+        text-align: left;
+    }
 }
